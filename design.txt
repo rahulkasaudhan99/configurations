@@ -1,0 +1,68 @@
+
+
+give 3 external api's running on docker
+
+
+i am supposed to make an aggregation api
+
+there is  queue
+ queue capacity is 5
+ queue timeout is 5 sec that 5 sec timer starts from first msg enters in queue
+ 
+ 
+ Here i have used activeMq for queue implementation part
+ 
+ 
+ one client send a request with 2 params 
+ 2nd client sends with 3 params
+ 
+ here queue cap is full
+ 
+ 
+ pricicng 
+ track
+ shipment
+ 
+ query parameter 
+ 
+ we can pass as many query params as we want in external api's 
+ 
+ 
+ 
+ 1st scenario 
+ where queue size not full within 5 sec 
+-> then it will hit external api's and returns response after 5 sec first msg enters in queue
+
+
+2nd where 
+ one client send s >=5 requests at a time 
+   or two or more clients send more than 5 req params within five secs 
+   
+   
+   Individual External Api's: (Uri format)
+	1. pricing Api : http://localhost:9080/pricing?q=NL,CN
+	2. track Api : http://localhost:9080/track?q=109347263,123456891
+	3. shipments Api : http://localhost:9080/shipments?q=109347263,123456891
+	
+	In all these three External Api's we can pass multiple queryParameters
+   
+   
+   Aggregation Api (Uri format) : http://localhost:8080/aggregation?pricing=BN,QL&track=123456891,109347263&shipments=123456891,109347263
+   BN,QL               : sent to Pricicng Queue
+   123456891,109347263 : sent to Track Queue
+   123456891,109347263 : sent to Shipment Queue 
+   
+   
+   MessagteRouter Class : congurations for queue thresolds timeout=5secs(timer starts from first msg enters) & size>=5  
+   
+   
+   Controller -> sending queryParams separately to -> Individual Queues (thro MessageRouter)
+   **Info - Controller class 3 UUID's (created for pricing ship and track) for every aggregationApi requests sent with queue msgs 
+   
+   From pricing Queue   -> PricingMessageProcessor  -> make req to external API through ExternalApiGateway   ->response -> PricingMessageProcessor  -> stored to database
+   From tracking Queue  -> TrackingMessageProcessor -> make req to external API through ExternalApiGateway   ->response -> TrackingMessageProcessor -> stored to database
+   From shipments Queue -> ShipmentMessageProcessor -> make req to external API through ExternalApiGateway   ->response -> ShipmentMessageProcessor -> stored to database
+   
+   controller-> aggregationService.buildAggRes(pricingRequest,trackingRequest,shipmentRequest) -> individual TaskExecuter's -> fetch response from database 
+   ->aggregate individual responses-> sends back to controller.
+   
